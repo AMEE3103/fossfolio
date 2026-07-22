@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Ameen — Systems &amp; Software</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0B0C0E;
+    --bg-soft:#111318;
+    --line:#212429;
+    --fg:#EAEAEA;
+    --fg-dim:#82868D;
+    --fg-faint:#4B4F56;
+    --accent:#6E5BFF;
+    --accent-soft:#B7FFEA;
+    --radius:2px;
+  }
+  html.light{
+    --bg:#F4F3F1;
+    --bg-soft:#EAE8E4;
+    --line:#DAD7D1;
+    --fg:#15161A;
+    --fg-dim:#6B6E74;
+    --fg-faint:#A9ACB2;
+    --accent:#4B3AE0;
+    --accent-soft:#0E7A5F;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    background:var(--bg);
+    color:var(--fg);
+    font-family:'Inter',sans-serif;
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+    transition:background .4s ease, color .4s ease;
+  }
+  ::selection{background:var(--accent); color:#fff;}
+
+  .mono{font-family:'JetBrains Mono',monospace;}
+  .display{font-family:'Space Grotesk',sans-serif;}
+
+  a{color:inherit; text-decoration:none;}
+  button{font:inherit; background:none; border:none; color:inherit; cursor:pointer;}
+
+  /* ---------- canvas bg ---------- */
+  #field{
+    position:fixed; inset:0; z-index:0; opacity:.5;
+    pointer-events:none;
+  }
+
+  /* ---------- loader ---------- */
+  #loader{
+    position:fixed; inset:0; z-index:100;
+    background:var(--bg);
+    display:flex; align-items:center; justify-content:center;
+    transition:opacity .6s ease, visibility .6s ease;
+  }
+  #loader span{
+    font-family:'JetBrains Mono',monospace;
+    font-size:clamp(20px,4vw,32px);
+    color:var(--fg-dim);
+    letter-spacing:.02em;
+  }
+  #loader.done{opacity:0; visibility:hidden;}
+
+  /* ---------- nav ---------- */
+  header{
+    position:fixed; top:0; left:0; right:0; z-index:20;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:22px clamp(20px,5vw,56px);
+    font-size:13px;
+    mix-blend-mode:difference;
+  }
+  header .mark{font-weight:600; letter-spacing:-.01em;}
+  nav{display:flex; align-items:center; gap:28px;}
+  nav a{color:var(--fg); opacity:.75; transition:opacity .25s;}
+  nav a:hover{opacity:1;}
+  .clock{
+    display:flex; gap:10px; align-items:center;
+    color:var(--fg-dim); font-size:12px; letter-spacing:.02em;
+  }
+  .clock button{color:var(--fg-dim); border:1px solid var(--line); border-radius:20px; padding:4px 10px; font-size:11px;}
+  .clock button:hover{color:var(--fg); border-color:var(--fg-dim);}
+
+  main{position:relative; z-index:2;}
+  section{padding:0 clamp(20px,5vw,56px);}
+
+  /* ---------- hero ---------- */
+  .hero{
+    min-height:100svh;
+    display:flex; flex-direction:column; justify-content:center;
+    padding-top:90px;
+  }
+  .eyebrow{
+    font-size:12px; color:var(--fg-dim); letter-spacing:.14em; text-transform:uppercase;
+    margin-bottom:22px; display:flex; align-items:center; gap:10px;
+  }
+  .eyebrow::before{
+    content:''; width:6px; height:6px; border-radius:50%; background:var(--accent-soft);
+    box-shadow:0 0 8px var(--accent-soft);
+  }
+  h1.hero-title{
+    font-weight:600;
+    font-size:clamp(34px,6.4vw,84px);
+    line-height:1.03;
+    letter-spacing:-.02em;
+    max-width:16ch;
+  }
+  h1.hero-title .soft{color:var(--fg-dim); font-weight:400;}
+  .hero-sub{
+    margin-top:28px; max-width:52ch;
+    font-size:clamp(15px,1.6vw,18px);
+    color:var(--fg-dim); line-height:1.65;
+  }
+  .hero-sub a{color:var(--fg); border-bottom:1px solid var(--fg-faint);}
+  .hero-sub a:hover{border-color:var(--fg);}
+  .hero-meta{
+    margin-top:56px; display:flex; gap:clamp(24px,4vw,56px); flex-wrap:wrap;
+  }
+  .hero-meta div{font-size:12px; color:var(--fg-faint);}
+  .hero-meta strong{
+    display:block; margin-top:6px; font-size:14px; color:var(--fg); font-weight:500;
+  }
+
+  /* ---------- section heads ---------- */
+  .section-head{
+    display:flex; align-items:baseline; justify-content:space-between;
+    padding:64px 0 28px;
+    border-bottom:1px solid var(--line);
+  }
+  .section-head h2{
+    font-size:14px; text-transform:uppercase; letter-spacing:.14em; color:var(--fg-dim); font-weight:500;
+  }
+  .section-head span{font-size:12px; color:var(--fg-faint);}
+
+  /* ---------- work list ---------- */
+  .work-row{
+    display:grid;
+    grid-template-columns:1.4fr .9fr 2fr auto;
+    gap:24px;
+    align-items:center;
+    padding:26px 0;
+    border-bottom:1px solid var(--line);
+    position:relative;
+    transition:padding-left .3s ease, color .3s ease;
+  }
+  .work-row:hover{padding-left:14px; color:var(--accent-soft);}
+  .work-row .wname{font-family:'Space Grotesk',sans-serif; font-size:clamp(18px,2.4vw,24px); font-weight:500;}
+  .work-row .wyear{font-size:12px; color:var(--fg-faint); font-family:'JetBrains Mono',monospace;}
+  .work-row .wdesc{font-size:13px; color:var(--fg-dim); line-height:1.5;}
+  .work-row .warrow{font-size:18px; color:var(--fg-faint); transition:transform .3s ease, color .3s ease;}
+  .work-row:hover .warrow{transform:translate(4px,-4px); color:var(--accent-soft);}
+  @media (max-width:760px){
+    .work-row{grid-template-columns:1fr; gap:6px;}
+    .work-row .warrow{display:none;}
+  }
+
+  /* ---------- about strip ---------- */
+  .about{
+    padding:80px 0;
+    display:grid; grid-template-columns:1.1fr 1fr; gap:60px;
+    border-bottom:1px solid var(--line);
+  }
+  .about p{
+    font-size:clamp(19px,2.6vw,27px); line-height:1.5; font-weight:400;
+    font-family:'Space Grotesk',sans-serif; color:var(--fg);
+  }
+  .about p span{color:var(--fg-faint);}
+  .stack-list{display:flex; flex-direction:column; gap:14px;}
+  .stack-row{
+    display:flex; justify-content:space-between; padding-bottom:12px; border-bottom:1px solid var(--line);
+    font-size:13px;
+  }
+  .stack-row span:first-child{color:var(--fg-dim);}
+  .stack-row span:last-child{font-family:'JetBrains Mono',monospace; color:var(--fg-faint);}
+  @media (max-width:760px){ .about{grid-template-columns:1fr;} }
+
+  /* ---------- involvements ---------- */
+  .inv-grid{
+    display:grid; grid-template-columns:repeat(3,1fr); gap:1px;
+    background:var(--line);
+    margin:0 0 0;
+  }
+  .inv-cell{
+    background:var(--bg); padding:32px 26px; min-height:150px;
+    display:flex; flex-direction:column; justify-content:space-between;
+  }
+  .inv-cell .tag{font-size:11px; color:var(--fg-faint); font-family:'JetBrains Mono',monospace; text-transform:uppercase; letter-spacing:.08em;}
+  .inv-cell h3{font-family:'Space Grotesk',sans-serif; font-weight:500; font-size:17px; margin-top:22px;}
+  @media (max-width:760px){ .inv-grid{grid-template-columns:1fr;} }
+
+  /* ---------- cta / footer ---------- */
+  .cta{
+    padding:120px 0 64px;
+    text-align:left;
+  }
+  .cta h2{
+    font-family:'Space Grotesk',sans-serif;
+    font-weight:600;
+    font-size:clamp(36px,7vw,96px);
+    line-height:1.02;
+    letter-spacing:-.02em;
+  }
+  .cta h2 em{font-style:normal; color:var(--fg-faint);}
+  .cta .email{
+    display:inline-block; margin-top:34px; font-size:clamp(16px,2vw,20px);
+    font-family:'JetBrains Mono',monospace; color:var(--fg-dim); border-bottom:1px solid var(--fg-faint);
+    padding-bottom:4px;
+  }
+  .cta .email:hover{color:var(--fg); border-color:var(--fg);}
+  footer{
+    padding:24px clamp(20px,5vw,56px) 40px;
+    display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px;
+    border-top:1px solid var(--line);
+    font-size:12px; color:var(--fg-faint);
+  }
+  footer .socials{display:flex; gap:20px;}
+  footer .socials a{color:var(--fg-dim); transition:color .2s;}
+  footer .socials a:hover{color:var(--fg);}
+
+  [data-reveal]{opacity:0; transform:translateY(18px); transition:opacity .7s ease, transform .7s ease;}
+  [data-reveal].in{opacity:1; transform:translateY(0);}
+</style>
+</head>
+<body>
+
+<div id="loader"><span class="mono" id="loaderText">ഹലോ</span></div>
+
+<canvas id="field"></canvas>
+
+<header>
+  <div class="mark display">A.—CSE</div>
+  <div class="clock">
+    <span id="clockOut" class="mono">--:--</span>
+    <span>IST · Kerala, IN</span>
+    <button id="themeBtn">THEME</button>
+  </div>
+  <nav>
+    <a href="#work">Work</a>
+    <a href="#about">About</a>
+    <a href="#contact">Contact</a>
+  </nav>
+</header>
+
+<main>
+  <section class="hero">
+    <div class="eyebrow mono">Available for internships &amp; collaborations</div>
+    <h1 class="hero-title display">
+      Building software<br><span class="soft">with a systems mindset.</span>
+    </h1>
+    <p class="hero-sub">
+      I'm Ameen, a Computer Science &amp; Engineering student at IHRD College of Engineering, Attingal.
+      I care about code that's legible before it's clever — small tools, clean interfaces,
+      and interactions that explain themselves.
+    </p>
+    <div class="hero-meta mono">
+      <div>ROLE<strong>CSE Student</strong></div>
+      <div>FOCUS<strong>Web &amp; Applied Software</strong></div>
+      <div>BASED<strong>Kerala, India</strong></div>
+      <div>GRAD<strong>2029</strong></div>
+    </div>
+  </section>
+
+  <section id="work">
+    <div class="section-head">
+      <h2>Selected work</h2>
+      <span class="mono">04 projects</span>
+    </div>
+
+    <div class="work-row" data-reveal>
+      <div class="wname">Food Barcode Scanner</div>
+      <div class="wyear">2025</div>
+      <div class="wdesc">Scan a product barcode and instantly surface nutrition data — built to make label-reading fast on a phone.</div>
+      <div class="warrow">↗</div>
+    </div>
+    <div class="work-row" data-reveal>
+      <div class="wname">Daily Planner</div>
+      <div class="wyear">2025</div>
+      <div class="wdesc">A lightweight day-planning tool focused on quick entry and a distraction-free layout.</div>
+      <div class="warrow">↗</div>
+    </div>
+    <div class="work-row" data-reveal>
+      <div class="wname">Portfolio — zaz.dev</div>
+      <div class="wyear">2025–2026</div>
+      <div class="wdesc">This site's predecessor: a systems-minded personal site with WebGL terrain and scroll-driven motion.</div>
+      <div class="warrow">↗</div>
+    </div>
+    <div class="work-row" data-reveal>
+      <div class="wname">Circuit Study</div>
+      <div class="wyear">2025</div>
+      <div class="wdesc">An early visual exploration — dark blueprint aesthetic with animated circuit traces and typed intros.</div>
+      <div class="warrow">↗</div>
+    </div>
+  </section>
+
+  <section id="about">
+    <div class="about" data-reveal>
+      <p>I think in <span>systems</span> — how one small part changes when another one moves — and I try to bring that same clarity to interfaces, not just code.</p>
+      <div class="stack-list mono">
+        <div class="stack-row"><span>Languages</span><span>Python · C · JavaScript</span></div>
+        <div class="stack-row"><span>Web</span><span>HTML5 · CSS · JS</span></div>
+        <div class="stack-row"><span>Currently</span><span>Building zaz.dev</span></div>
+        <div class="stack-row"><span>Reading</span><span>Systems design notes</span></div>
+      </div>
+    </div>
+
+    <div class="section-head">
+      <h2>Involvement</h2>
+      <span class="mono">campus</span>
+    </div>
+    <div class="inv-grid">
+      <div class="inv-cell" data-reveal>
+        <span class="tag">Media Team</span>
+        <h3>FOSS Club</h3>
+      </div>
+      <div class="inv-cell" data-reveal>
+        <span class="tag">Operations</span>
+        <h3>IEDC</h3>
+      </div>
+      <div class="inv-cell" data-reveal>
+        <span class="tag">Joint Secretary</span>
+        <h3>ISTE</h3>
+      </div>
+    </div>
+  </section>
+
+  <section id="contact">
+    <div class="cta" data-reveal>
+      <h2 class="display">Let's build<br><em>something useful.</em></h2>
+      <a class="email" href="mailto:hello@zaz.dev">hello@zaz.dev</a>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="mono">© 2026 AMEEN</div>
+  <div class="socials mono">
+    <a href="#">GitHub</a>
+    <a href="#">LinkedIn</a>
+    <a href="#">Twitter/X</a>
+  </div>
+</footer>
+
+<script>
+  // ---------- intro loader: multi-language greeting cycle ----------
+  const greetings = ["ഹലോ","Hello","Bonjour","こんにちは","Hola","مرحبا"];
+  let gi = 0;
+  const loaderText = document.getElementById('loaderText');
+  const loaderInterval = setInterval(()=>{
+    gi++;
+    if(gi < greetings.length){ loaderText.textContent = greetings[gi]; }
+  }, 220);
+  window.addEventListener('load', ()=>{
+    setTimeout(()=>{
+      clearInterval(loaderInterval);
+      document.getElementById('loader').classList.add('done');
+    }, 1400);
+  });
+
+  // ---------- IST clock ----------
+  function tick(){
+    const now = new Date();
+    const ist = new Date(now.getTime() + (now.getTimezoneOffset()*60000) + (5.5*3600000));
+    const hh = String(ist.getHours()).padStart(2,'0');
+    const mm = String(ist.getMinutes()).padStart(2,'0');
+    const ss = String(ist.getSeconds()).padStart(2,'0');
+    document.getElementById('clockOut').textContent = `${hh}:${mm}:${ss}`;
+  }
+  tick(); setInterval(tick, 1000);
+
+  // ---------- theme toggle ----------
+  document.getElementById('themeBtn').addEventListener('click', ()=>{
+    document.documentElement.classList.toggle('light');
+  });
+
+  // ---------- scroll reveal ----------
+  const io = new IntersectionObserver((entries)=>{
+    entries.forEach(e=>{ if(e.isIntersecting) e.target.classList.add('in'); });
+  }, {threshold:.15});
+  document.querySelectorAll('[data-reveal]').forEach(el=>io.observe(el));
+
+  // ---------- ambient field: faint moving nodes + connecting lines ----------
+  const canvas = document.getElementById('field');
+  const ctx = canvas.getContext('2d');
+  let w, h, nodes = [];
+  const NODE_COUNT = 42;
+
+  function resize(){
+    w = canvas.width = window.innerWidth;
+    h = canvas.height = window.innerHeight;
+  }
+  function initNodes(){
+    nodes = Array.from({length:NODE_COUNT}, ()=>({
+      x: Math.random()*w,
+      y: Math.random()*h,
+      vx: (Math.random()-0.5)*0.15,
+      vy: (Math.random()-0.5)*0.15,
+    }));
+  }
+  window.addEventListener('resize', ()=>{ resize(); initNodes(); });
+  resize(); initNodes();
+
+  const isLight = ()=> document.documentElement.classList.contains('light');
+
+  function draw(){
+    ctx.clearRect(0,0,w,h);
+    const lineColor = isLight() ? 'rgba(20,20,25,' : 'rgba(180,180,200,';
+    const dotColor  = isLight() ? 'rgba(20,20,25,0.35)' : 'rgba(200,200,220,0.35)';
+
+    nodes.forEach(n=>{
+      n.x += n.vx; n.y += n.vy;
+      if(n.x < 0 || n.x > w) n.vx *= -1;
+      if(n.y < 0 || n.y > h) n.vy *= -1;
+    });
+
+    for(let i=0;i<nodes.length;i++){
+      for(let j=i+1;j<nodes.length;j++){
+        const a = nodes[i], b = nodes[j];
+        const dx = a.x-b.x, dy = a.y-b.y;
+        const dist = Math.sqrt(dx*dx+dy*dy);
+        if(dist < 140){
+          ctx.strokeStyle = lineColor + (0.10 * (1 - dist/140)) + ')';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(a.x,a.y);
+          ctx.lineTo(b.x,b.y);
+          ctx.stroke();
+        }
+      }
+    }
+    nodes.forEach(n=>{
+      ctx.fillStyle = dotColor;
+      ctx.beginPath();
+      ctx.arc(n.x,n.y,1.4,0,Math.PI*2);
+      ctx.fill();
+    });
+    requestAnimationFrame(draw);
+  }
+  draw();
+
+  // respect reduced motion
+  if(window.matchMedia('(prefers-reduced-motion: reduce)').matches){
+    document.querySelectorAll('[data-reveal]').forEach(el=>el.classList.add('in'));
+  }
+</script>
+</body>
+</html>
